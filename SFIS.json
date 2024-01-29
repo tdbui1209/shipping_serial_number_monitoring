@@ -1,0 +1,16 @@
+{
+    "username": "******74",
+    "password": "*********12",
+    "DB_URL": "***.**.***.***:****/******tst",
+    "smtpHost": "******.usiglobal.com",
+    "sender": "**.***.****@usiglobal.com",
+    "smtpPort": 25,
+    "smtpUser": "**.***.****",
+    "smtpPassword": "************",
+    "personal": "SFIS Administrator",
+
+    "01_MailAlertTo": "**********@usiglobal.com",
+    "01_MailCC": "********@usiglobal.com,********@usiglobal.com",
+
+    "max_ssn": "120-63616741"
+}
