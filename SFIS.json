@@ -8,9 +8,8 @@
     "smtpUser": "**.***.****",
     "smtpPassword": "************",
     "personal": "SFIS Administrator",
-
     "01_MailAlertTo": "**********@usiglobal.com",
     "01_MailCC": "********@usiglobal.com,********@usiglobal.com",
-
-    "max_ssn": "120-63616741"
+    "max_ssn": "120-63616741",
+    "customer": "ZEBRA"
 }
