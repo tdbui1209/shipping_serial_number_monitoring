@@ -1,37 +1,32 @@
 import json
-import cx_Oracle
-import pandas as pd
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from oracle_dataframe_query import OracleDataframeQuery
+from email_sender import EmailSender
 
 
-config = json.load(open('SFIS.json'))
-username = config['username']
-password = config['password']
-dsn = config['DB_URL']
+CONFIG = json.load(open('SFIS.json'))
+USERNAME = CONFIG['username']
+PASSWORD = CONFIG['password']
+DSN = CONFIG['DB_URL']
+CUSTOMER = CONFIG['customer']
 
-conn = cx_Oracle.connect(username, password, dsn)
-cursor = conn.cursor()
-cursor.execute("select DISTINCT(SHIPPING_SN) from SFISM4.R_SN_DETAIL_T where SHIPPING_SN like '120-636%'")
+# Query the data from the Oracle database
+oracle_query = OracleDataframeQuery(USERNAME, PASSWORD, DSN)
+query_command = "select DISTINCT(SHIPPING_SN) from SFISM4.R_SN_DETAIL_T where SHIPPING_SN like '120-636%'"
+df = oracle_query.query(query_command)
 
-rows = cursor.fetchall()
-descs = cursor.description
-
-df = pd.DataFrame(rows, columns=[d[0] for d in descs])
-customer = 'ZEBRA'
-total = int('120-63616741'[len('120-636'):]) - int(df['SHIPPING_SN'].min()[len('120-636'):]) + 1
+# Calculate the total, start, end, last, numbers, and percent of remaining SSN
+PREFIX_SSN = '120-636'
 start = df['SHIPPING_SN'].min()
-end = config['max_ssn']
+END = CONFIG['max_ssn']
 last = df['SHIPPING_SN'].max()
-left = total - len(df)
-percent = round((len(df) / total) * 100, 2)
-cursor.close()
-conn.close()
+total = int(END[len(PREFIX_SSN):]) - int(start[len(PREFIX_SSN):]) + 1
+remaining = int(END[len(PREFIX_SSN):]) - int(last[len(PREFIX_SSN):]) + 1
+percent_remaining = remaining / total * 100
 
-str_out = """
-    <table border="1">
-        <tr bgcolor="yellow">
+# Create the HTML table
+str_out = '''
+    <table border='1'>
+        <tr bgcolor='yellow'>
             <td>Customer</td>
             <td>Start SSN</td>
             <td>Last Used</td>
@@ -40,38 +35,24 @@ str_out = """
             <td>SSN Left</td>
             <td>Used Percent</td>
         </tr>
-    """
+    '''
 str_out += '<tr>'
-str_out += '<td>' + customer + '</td>'
+str_out += '<td>' + CUSTOMER + '</td>'
 str_out += '<td>' + start + '</td>'
 str_out += '<td>' + last + '</td>'
-str_out += '<td>' + end + '</td>'
+str_out += '<td>' + END + '</td>'
 str_out += '<td>' + str(total) + '</td>'
-str_out += '<td>' + str(left) + '</td>'
-if percent >= 80:
-    str_out += '<td bgcolor="red">' + str(percent) + '%' + '</td>'
+str_out += '<td>' + str(remaining) + '</td>'
+if percent_remaining >= 80:
+    str_out += '<td bgcolor="red">' + str(percent_remaining) + '%' + '</td>'
 else:
-    str_out += '<td>' + str(percent) + '%' + '</td>'
+    str_out += '<td>' + str(percent_remaining) + '%' + '</td>'
 str_out += '</tr>'
 str_out += '</table>'
 
-# Email configuration
-sender_email = config['sender']
-receiver_email = config['01_MailAlertTo']
-subject = 'Table Data'
-message = MIMEMultipart()
-message['From'] = sender_email
-message['To'] = receiver_email
-message['Cc'] = config['01_MailCC']
-message['Subject'] = subject
-print(message)
-# Attach the HTML content to the email
-# message.attach(MIMEText(str_out, "html"))
-
-# # Connect to the SMTP server and send the email
-# smtpHost = config['smtpHost']
-# smtpPort = config['smtpPort']
-# smtpPassword = config['smtpPassword']
-# with smtplib.SMTP(host=smtpHost, port=smtpPort) as server:
-#     server.login(sender_email, smtpPassword)
-#     server.sendmail(sender_email, receiver_email, message.as_string())
+# Send the email
+SUBJECT = 'Table Data'
+email_sender = EmailSender(sender_email=CONFIG['sender'], receiver_email=CONFIG['01_MailAlertTo'],
+                           subject=SUBJECT, message=str_out, host=CONFIG['smtpHost'],
+                           port=CONFIG['smtpPort'], password=CONFIG['smtpPassword'])
+email_sender.send_email()
